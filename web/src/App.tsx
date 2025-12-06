@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { createClient } from '@supabase/supabase-js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=246d1604-90bc-4093-8ea8-483540673a5a';
+const RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=246d1604-90bc-4093-8ea8-483540673a5a';
 const connection = new Connection(RPC_URL, 'confirmed');
+
+// Supabase client
+const supabase = createClient(
+  'https://mvglowfvayvpqsfbortv.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12Z2xvd2Z2YXl2cHFzZmJvcnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5ODEyNTgsImV4cCI6MjA4MDU1NzI1OH0.AMt0qkySg8amOyrBbypFZnrRaEPbIrpmMYGGMxksPks'
+);
 
 // Phantom wallet types
 interface PhantomProvider {
@@ -228,6 +234,7 @@ body {
   color: #fff;
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
 }
 
 .btn-copy:hover { background: #333; }
@@ -284,6 +291,7 @@ body {
   color: #888;
   cursor: pointer;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 .btn-ghost:hover { border-color: #fff; color: #fff; }
@@ -316,6 +324,7 @@ export default function App() {
             <button className={`nav-link ${tab === 'lookup' ? 'active' : ''}`} onClick={() => setTab('lookup')}>Lookup</button>
             <button className={`nav-link ${tab === 'send' ? 'active' : ''}`} onClick={() => setTab('send')}>Send</button>
             <button className={`nav-link ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>Register</button>
+            <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" className="nav-link">𝕏</a>
           </div>
         </nav>
         <main className="main">
@@ -329,17 +338,45 @@ export default function App() {
             {tab === 'register' && <RegisterTab />}
           </div>
         </main>
-        <footer className="footer">Free to register</footer>
+        <footer className="footer">
+          Free to register · <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" style={{color:'#666',textDecoration:'none'}}>@SolTagxyz</a>
+        </footer>
       </div>
     </>
   );
 }
 
-
 interface WalletStats {
   balance: number;
   tokenCount: number;
   txCount: number;
+}
+
+// Supabase helper functions
+async function resolveAlias(alias: string) {
+  const { data, error } = await supabase
+    .from('aliases')
+    .select('*')
+    .eq('alias', alias.toLowerCase())
+    .single();
+  if (error || !data) return null;
+  return { alias: data.alias, address: data.address };
+}
+
+async function checkAlias(alias: string) {
+  const { data } = await supabase
+    .from('aliases')
+    .select('alias')
+    .eq('alias', alias.toLowerCase())
+    .single();
+  return !data; // available if no data
+}
+
+async function registerAlias(alias: string, address: string) {
+  const { error } = await supabase
+    .from('aliases')
+    .insert({ alias: alias.toLowerCase(), address });
+  return !error;
 }
 
 function LookupTab() {
@@ -354,18 +391,11 @@ function LookupTab() {
     setLoadingStats(true);
     try {
       const pubkey = new PublicKey(address);
-      
-      // Get SOL balance
       const balance = await connection.getBalance(pubkey);
-      
-      // Get token accounts count
       const tokenAccounts = await connection.getParsedTokenAccountsByOwner(pubkey, {
         programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
       });
-      
-      // Get recent transaction signatures (limit 100)
       const sigs = await connection.getSignaturesForAddress(pubkey, { limit: 100 });
-      
       setStats({
         balance: balance / LAMPORTS_PER_SOL,
         tokenCount: tokenAccounts.value.length,
@@ -381,14 +411,13 @@ function LookupTab() {
   const search = async () => {
     if (q.length < 3) return;
     setLoading(true); setResult(null); setNotFound(false); setStats(null);
-    try {
-      const r = await fetch(`${API_URL}/resolve/${q}`);
-      if (r.ok) {
-        const data = await r.json();
-        setResult(data);
-        fetchStats(data.address);
-      } else setNotFound(true);
-    } catch { setNotFound(true); }
+    const data = await resolveAlias(q);
+    if (data) {
+      setResult(data);
+      fetchStats(data.address);
+    } else {
+      setNotFound(true);
+    }
     setLoading(false);
   };
 
@@ -407,8 +436,6 @@ function LookupTab() {
           <div className="result-alias">@{result.alias}</div>
           <div className="result-label">Linked wallet</div>
           <div className="result-addr">{result.address}</div>
-          
-          {/* Wallet Stats */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,margin:'20px 0',textAlign:'center'}}>
             <div style={{background:'#0a0a0a',padding:16,borderRadius:8}}>
               <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>
@@ -429,7 +456,6 @@ function LookupTab() {
               <div style={{fontSize:11,color:'#666',marginTop:4}}>TXS</div>
             </div>
           </div>
-          
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button className="btn-copy" onClick={() => navigator.clipboard.writeText(result.address)}>Copy address</button>
             <a href={`https://solscan.io/account/${result.address}`} target="_blank" rel="noreferrer" className="btn-ghost">Solscan</a>
@@ -449,28 +475,23 @@ function LookupTab() {
 
 function SendTab() {
   const [a, setA] = useState('');
-  const [amount, setAmount] = useState('');
   const [addr, setAddr] = useState<string|null>(null);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [mode, setMode] = useState<'select'|'phantom'|'manual'|null>(null);
   const [wallet, setWallet] = useState<PublicKey|null>(null);
+  const [amount, setAmount] = useState('');
   const [sending, setSending] = useState(false);
   const [txSig, setTxSig] = useState<string|null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Check if Phantom is connected
   useEffect(() => {
-    if (window.solana?.publicKey) setWallet(window.solana.publicKey);
-  }, []);
-
-  // Resolve alias
-  useEffect(() => {
-    if (a.length < 3) { setAddr(null); setNotFound(false); return; }
+    if (a.length < 3) { setAddr(null); setNotFound(false); setMode(null); return; }
     const t = setTimeout(async () => {
       setLoading(true); setNotFound(false);
-      try {
-        const r = await fetch(`${API_URL}/resolve/${a}`);
-        if (r.ok) setAddr((await r.json()).address); else { setAddr(null); setNotFound(true); }
-      } catch { setNotFound(true); }
+      const data = await resolveAlias(a);
+      if (data) setAddr(data.address);
+      else { setAddr(null); setNotFound(true); }
       setLoading(false);
     }, 400);
     return () => clearTimeout(t);
@@ -517,7 +538,7 @@ function SendTab() {
       <div className="result-addr">{txSig}</div>
       <div style={{display:'flex',gap:12,justifyContent:'center'}}>
         <a href={`https://solscan.io/tx/${txSig}`} target="_blank" rel="noreferrer" className="btn-copy">View on Solscan</a>
-        <button className="btn-ghost" onClick={() => {setTxSig(null);setA('');setAmount('');}}>Send more</button>
+        <button className="btn-ghost" onClick={() => {setTxSig(null);setA('');setAmount('');setMode(null);}}>Send more</button>
       </div>
     </div>
   );
@@ -528,7 +549,7 @@ function SendTab() {
         <label className="form-label">Recipient</label>
         <div className="input-wrap">
           <span className="input-prefix">@</span>
-          <input className="input-main" value={a} onChange={e => setA(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''))} placeholder="username" />
+          <input className="input-main" value={a} onChange={e => {setA(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'')); setMode(null);}} placeholder="username" />
           {loading && <span className="input-status load">◌</span>}
           {addr && <span className="input-status ok">✓</span>}
           {notFound && <span className="input-status err">✗</span>}
@@ -537,28 +558,75 @@ function SendTab() {
         {notFound && <div className="hint err">Not registered</div>}
       </div>
 
-      {addr && (
-        <div className="form-section">
-          <label className="form-label">Amount (SOL)</label>
-          <div className="input-wrap">
-            <input className="input-main" style={{paddingLeft:24}} type="number" step="0.001" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
-          </div>
+      {/* Mode selection */}
+      {addr && !mode && (
+        <div style={{display:'flex',gap:12,marginBottom:20}}>
+          <button className="btn-main" style={{flex:1,padding:16}} onClick={() => setMode('phantom')}>
+            ⚡ Send with Phantom
+          </button>
+          <button className="btn-ghost" style={{flex:1,padding:16}} onClick={() => setMode('manual')}>
+            📋 Manual steps
+          </button>
         </div>
       )}
 
-      {!wallet ? (
-        <button className="btn-main" onClick={connectWallet}>
-          {window.solana ? 'Connect Phantom' : 'Install Phantom'}
-        </button>
-      ) : (
-        <button className="btn-main" disabled={!addr || !amount || parseFloat(amount) <= 0 || sending} onClick={sendSol}>
-          {sending ? 'Confirming...' : addr && amount ? `Send ${amount} SOL to @${a}` : 'Enter recipient & amount'}
-        </button>
+      {/* Phantom mode */}
+      {mode === 'phantom' && addr && (
+        <>
+          <div className="form-section">
+            <label className="form-label">Amount (SOL)</label>
+            <div className="input-wrap">
+              <input className="input-main" style={{paddingLeft:24}} type="number" step="0.001" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+            </div>
+          </div>
+          {!wallet ? (
+            <button className="btn-main" onClick={connectWallet}>
+              {window.solana ? 'Connect Phantom' : 'Install Phantom'}
+            </button>
+          ) : (
+            <button className="btn-main" disabled={!amount || parseFloat(amount) <= 0 || sending} onClick={sendSol}>
+              {sending ? 'Confirming...' : amount ? `Send ${amount} SOL to @${a}` : 'Enter amount'}
+            </button>
+          )}
+          {wallet && (
+            <div style={{textAlign:'center',marginTop:16,fontSize:12,color:'#666'}}>
+              Connected: {wallet.toBase58().slice(0,6)}...{wallet.toBase58().slice(-4)}
+            </div>
+          )}
+          <button className="btn-ghost" style={{width:'100%',marginTop:12}} onClick={() => setMode(null)}>← Back</button>
+        </>
       )}
 
-      {wallet && (
-        <div style={{textAlign:'center',marginTop:16,fontSize:12,color:'#666'}}>
-          Connected: {wallet.toBase58().slice(0,6)}...{wallet.toBase58().slice(-4)}
+      {/* Manual mode */}
+      {mode === 'manual' && addr && (
+        <div className="result-box" style={{textAlign:'left'}}>
+          <div style={{fontSize:16,fontWeight:600,marginBottom:20,textAlign:'center'}}>How to send SOL manually</div>
+          
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,color:'#666',marginBottom:8}}>STEP 1: Copy the address</div>
+            <div style={{background:'#0a0a0a',padding:12,borderRadius:8,fontFamily:'monospace',fontSize:12,wordBreak:'break-all',color:'#888'}}>
+              {addr}
+            </div>
+            <button className="btn-copy" style={{width:'100%',marginTop:8}} onClick={() => {navigator.clipboard.writeText(addr);setCopied(true);setTimeout(()=>setCopied(false),2000);}}>
+              {copied ? '✓ Copied!' : 'Copy address'}
+            </button>
+          </div>
+
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,color:'#666',marginBottom:8}}>STEP 2: Open your wallet</div>
+            <div style={{fontSize:14,color:'#aaa'}}>Open Phantom, Solflare, Backpack, or any Solana wallet</div>
+          </div>
+
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,color:'#666',marginBottom:8}}>STEP 3: Send SOL</div>
+            <div style={{fontSize:14,color:'#aaa'}}>Click "Send" → Paste the address → Enter amount → Confirm</div>
+          </div>
+
+          <div style={{padding:12,background:'#0a0a0a',borderRadius:8,marginBottom:16}}>
+            <div style={{fontSize:12,color:'#22c55e'}}>✓ Sending to @{a}</div>
+          </div>
+
+          <button className="btn-ghost" style={{width:'100%'}} onClick={() => setMode(null)}>← Back</button>
         </div>
       )}
     </>
@@ -570,7 +638,6 @@ function RegisterTab() {
   const [wallet, setWallet] = useState('');
   const [aliasOk, setAliasOk] = useState<boolean|null>(null);
   const [walletOk, setWalletOk] = useState<boolean|null>(null);
-  const [balance, setBalance] = useState<number|null>(null);
   const [checking, setChecking] = useState({alias:false,wallet:false});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -579,24 +646,23 @@ function RegisterTab() {
     if (alias.length < 3) { setAliasOk(null); return; }
     setChecking(c => ({...c, alias:true}));
     const t = setTimeout(async () => {
-      try { setAliasOk((await (await fetch(`${API_URL}/check/${alias}`)).json()).available); }
-      catch { setAliasOk(false); }
+      const available = await checkAlias(alias);
+      setAliasOk(available);
       setChecking(c => ({...c, alias:false}));
     }, 300);
     return () => clearTimeout(t);
   }, [alias]);
 
   useEffect(() => {
-    if (wallet.length < 32) { setWalletOk(null); setBalance(null); return; }
+    if (wallet.length < 32) { setWalletOk(null); return; }
     setChecking(c => ({...c, wallet:true}));
-    const t = setTimeout(async () => {
+    const t = setTimeout(() => {
       try {
-        new PublicKey(wallet); // Just validate address format
-        // No token check - anyone can register
-        setBalance(0); setWalletOk(true);
-      } catch { setWalletOk(false); setBalance(null); }
+        new PublicKey(wallet);
+        setWalletOk(true);
+      } catch { setWalletOk(false); }
       setChecking(c => ({...c, wallet:false}));
-    }, 500);
+    }, 300);
     return () => clearTimeout(t);
   }, [wallet]);
 
@@ -633,23 +699,16 @@ function RegisterTab() {
             {!checking.wallet && walletOk === true && <span className="input-status ok">✓</span>}
             {!checking.wallet && walletOk === false && <span className="input-status err">✗</span>}
           </div>
-          {walletOk === false && balance !== null && <div className="hint err">Invalid address</div>}
-          {walletOk === false && balance === null && <div className="hint err">Invalid address</div>}
+          {walletOk === false && <div className="hint err">Invalid address</div>}
           {walletOk && <div className="hint ok">Valid address</div>}
         </div>
       )}
       <button className="btn-main" disabled={!aliasOk || !walletOk || submitting}
         onClick={async () => {
           setSubmitting(true);
-          try {
-            const res = await fetch(`${API_URL}/register`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ alias, address: wallet })
-            });
-            if (res.ok) setDone(true);
-            else alert('Registration failed: ' + ((await res.json()).error || 'Unknown error'));
-          } catch { alert('Registration failed - check your connection'); }
+          const success = await registerAlias(alias, wallet);
+          if (success) setDone(true);
+          else alert('Registration failed - alias may already be taken');
           setSubmitting(false);
         }}>
         {submitting ? 'Registering...' : aliasOk && walletOk ? `Claim @${alias}` : 'Complete form above'}

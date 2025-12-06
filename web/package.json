@@ -8,12 +8,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@solana/web3.js": "^1.87.6",
+    "@coral-xyz/anchor": "^0.29.0",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.27",
-    "@coral-xyz/anchor": "^0.29.0",
+    "@solana/web3.js": "^1.87.6",
+    "@supabase/supabase-js": "^2.86.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
