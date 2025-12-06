@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
+import { useState, useEffect } from 'react';
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { createClient } from '@supabase/supabase-js';
-import bs58 from 'bs58';
 
 const RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=246d1604-90bc-4093-8ea8-483540673a5a';
 const connection = new Connection(RPC_URL, 'confirmed');
@@ -27,7 +26,7 @@ declare global {
   }
 }
 
-type Tab = 'lookup' | 'send' | 'register' | 'vanity';
+type Tab = 'lookup' | 'send' | 'register';
 
 // Check if URL is a profile page like /@username
 function getProfileFromURL(): string | null {
@@ -371,7 +370,6 @@ export default function App() {
             <button className={`nav-link ${tab === 'lookup' ? 'active' : ''}`} onClick={() => setTab('lookup')}>Lookup</button>
             <button className={`nav-link ${tab === 'send' ? 'active' : ''}`} onClick={() => setTab('send')}>Send</button>
             <button className={`nav-link ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>Register</button>
-            <button className={`nav-link ${tab === 'vanity' ? 'active' : ''}`} onClick={() => setTab('vanity')}>Vanity</button>
             <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" className="nav-link">𝕏</a>
           </div>
         </nav>
@@ -384,7 +382,6 @@ export default function App() {
             {tab === 'lookup' && <LookupTab />}
             {tab === 'send' && <SendTab />}
             {tab === 'register' && <RegisterTab />}
-            {tab === 'vanity' && <VanityTab />}
           </div>
         </main>
         <footer className="footer">
@@ -868,152 +865,4 @@ function RegisterTab() {
   );
 }
 
-function VanityTab() {
-  const [prefix, setPrefix] = useState('');
-  const [suffix, setSuffix] = useState('');
-  const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<{address: string; privateKey: string} | null>(null);
-  const [attempts, setAttempts] = useState(0);
-  const [copied, setCopied] = useState<'addr'|'key'|null>(null);
-  const workerRef = useRef<number | null>(null);
 
-  const startSearch = () => {
-    if (!prefix && !suffix) return;
-    setRunning(true);
-    setResult(null);
-    setAttempts(0);
-
-    const search = () => {
-      const batchSize = 1000;
-      for (let i = 0; i < batchSize; i++) {
-        const keypair = Keypair.generate();
-        const addr = keypair.publicKey.toBase58();
-        
-        const prefixMatch = !prefix || addr.toLowerCase().startsWith(prefix.toLowerCase());
-        const suffixMatch = !suffix || addr.toLowerCase().endsWith(suffix.toLowerCase());
-        
-        if (prefixMatch && suffixMatch) {
-          setResult({
-            address: addr,
-            privateKey: bs58.encode(keypair.secretKey)
-          });
-          setRunning(false);
-          return;
-        }
-      }
-      setAttempts(a => a + batchSize);
-      workerRef.current = requestAnimationFrame(search);
-    };
-    
-    workerRef.current = requestAnimationFrame(search);
-  };
-
-  const stopSearch = () => {
-    if (workerRef.current) {
-      cancelAnimationFrame(workerRef.current);
-    }
-    setRunning(false);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (workerRef.current) cancelAnimationFrame(workerRef.current);
-    };
-  }, []);
-
-  if (result) return (
-    <div className="result-box success">
-      <div className="success-check">✓</div>
-      <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Found in {attempts.toLocaleString()} attempts!</div>
-      
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:12,color:'#666',marginBottom:8}}>ADDRESS</div>
-        <div style={{background:'#0a0a0a',padding:12,borderRadius:8,fontFamily:'monospace',fontSize:11,wordBreak:'break-all',color:'#fff'}}>
-          <span style={{color:'#22c55e'}}>{result.address.slice(0, prefix.length)}</span>
-          {result.address.slice(prefix.length, -suffix.length || undefined)}
-          {suffix && <span style={{color:'#22c55e'}}>{result.address.slice(-suffix.length)}</span>}
-        </div>
-        <button className="btn-copy" style={{width:'100%',marginTop:8}} onClick={() => {navigator.clipboard.writeText(result.address);setCopied('addr');setTimeout(()=>setCopied(null),2000);}}>
-          {copied === 'addr' ? '✓ Copied!' : 'Copy address'}
-        </button>
-      </div>
-
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:12,color:'#ef4444',marginBottom:8}}>⚠️ PRIVATE KEY - SAVE THIS SECURELY</div>
-        <div style={{background:'#1a0a0a',padding:12,borderRadius:8,fontFamily:'monospace',fontSize:9,wordBreak:'break-all',color:'#888',border:'1px solid #ef4444'}}>
-          {result.privateKey}
-        </div>
-        <button className="btn-copy" style={{width:'100%',marginTop:8,background:'#ef4444',color:'#fff'}} onClick={() => {navigator.clipboard.writeText(result.privateKey);setCopied('key');setTimeout(()=>setCopied(null),2000);}}>
-          {copied === 'key' ? '✓ Copied!' : 'Copy private key'}
-        </button>
-      </div>
-
-      <div style={{padding:12,background:'#0a0a0a',borderRadius:8,marginBottom:16,fontSize:12,color:'#666'}}>
-        Import this private key into Phantom or any Solana wallet to use this address.
-      </div>
-
-      <button className="btn-ghost" onClick={() => {setResult(null);setPrefix('');setSuffix('');}}>Generate another</button>
-    </div>
-  );
-
-  return (
-    <>
-      <div style={{textAlign:'center',marginBottom:24}}>
-        <div style={{fontSize:14,color:'#666'}}>Generate a custom Solana address</div>
-        <div style={{fontSize:12,color:'#444',marginTop:4}}>Max 3 characters • Usually under 1 minute</div>
-      </div>
-
-      <div className="form-section">
-        <label className="form-label">Starts with (optional)</label>
-        <div className="input-wrap">
-          <input 
-            className="input-main" 
-            style={{paddingLeft:24,fontFamily:'monospace'}} 
-            value={prefix} 
-            onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,3))} 
-            placeholder="e.g. Sol" 
-            maxLength={3}
-            disabled={running}
-          />
-        </div>
-      </div>
-
-      <div className="form-section">
-        <label className="form-label">Ends with (optional)</label>
-        <div className="input-wrap">
-          <input 
-            className="input-main" 
-            style={{paddingLeft:24,fontFamily:'monospace'}} 
-            value={suffix} 
-            onChange={e => setSuffix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,3))} 
-            placeholder="e.g. xyz" 
-            maxLength={3}
-            disabled={running}
-          />
-        </div>
-      </div>
-
-      {running && (
-        <div style={{textAlign:'center',marginBottom:16}}>
-          <div style={{fontSize:24,fontWeight:700,color:'#fff'}}>{attempts.toLocaleString()}</div>
-          <div style={{fontSize:12,color:'#666'}}>addresses checked</div>
-        </div>
-      )}
-
-      {!running ? (
-        <button className="btn-main" onClick={startSearch} disabled={!prefix && !suffix}>
-          {prefix || suffix ? `Create wallet ${prefix ? `starting with "${prefix}"` : ''}${prefix && suffix ? ' and ' : ''}${suffix ? `ending with "${suffix}"` : ''}` : 'Enter prefix or suffix'}
-        </button>
-      ) : (
-        <button className="btn-main" style={{background:'#ef4444',color:'#fff'}} onClick={stopSearch}>
-          Stop searching
-        </button>
-      )}
-
-      <div style={{marginTop:20,padding:16,background:'#111',borderRadius:12,fontSize:12,color:'#666'}}>
-        <div style={{fontWeight:600,marginBottom:8,color:'#888'}}>How it works</div>
-        <div>We generate random Solana keypairs until one matches your pattern. Longer patterns take exponentially longer. Your private key never leaves your browser.</div>
-      </div>
-    </>
-  );
-}
