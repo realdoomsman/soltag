@@ -1002,7 +1002,7 @@ function VanityTab() {
 
       {!running ? (
         <button className="btn-main" onClick={startSearch} disabled={!prefix && !suffix}>
-          {prefix || suffix ? `Find address ${prefix ? `starting with "${prefix}"` : ''}${prefix && suffix ? ' and ' : ''}${suffix ? `ending with "${suffix}"` : ''}` : 'Enter prefix or suffix'}
+          {prefix || suffix ? `Create wallet ${prefix ? `starting with "${prefix}"` : ''}${prefix && suffix ? ' and ' : ''}${suffix ? `ending with "${suffix}"` : ''}` : 'Enter prefix or suffix'}
         </button>
       ) : (
         <button className="btn-main" style={{background:'#ef4444',color:'#fff'}} onClick={stopSearch}>
