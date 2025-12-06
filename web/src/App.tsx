@@ -28,6 +28,15 @@ declare global {
 
 type Tab = 'lookup' | 'send' | 'register';
 
+// Check if URL is a profile page like /@username
+function getProfileFromURL(): string | null {
+  const path = window.location.pathname;
+  if (path.startsWith('/@')) {
+    return path.slice(2).toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+  return null;
+}
+
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
@@ -314,6 +323,43 @@ body {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('lookup');
+  const [profileUser, setProfileUser] = useState<string | null>(null);
+
+  useEffect(() => {
+    const profile = getProfileFromURL();
+    if (profile) setProfileUser(profile);
+  }, []);
+
+  // Profile page view
+  if (profileUser) {
+    return (
+      <>
+        <style>{CSS}</style>
+        <div className="app">
+          <nav className="nav">
+            <a href="/" className="logo" style={{textDecoration:'none'}}>soltag</a>
+            <div className="nav-links">
+              <a href="/" className="nav-link">Home</a>
+              <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" className="nav-link">𝕏</a>
+            </div>
+          </nav>
+          <main className="main">
+            <div className="content">
+              <ProfilePage username={profileUser} />
+            </div>
+          </main>
+          <footer className="footer">
+            <div style={{marginBottom:12}}>
+              <span style={{color:'#666',fontSize:11,textTransform:'uppercase',letterSpacing:1}}>CA: </span>
+              <span style={{fontFamily:'monospace',fontSize:12,color:'#888',cursor:'pointer'}} onClick={() => {navigator.clipboard.writeText('PASTE_YOUR_CA_HERE');}} title="Click to copy">PASTE_YOUR_CA_HERE</span>
+            </div>
+            Free to register · <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" style={{color:'#666',textDecoration:'none'}}>@SolTagxyz</a>
+          </footer>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{CSS}</style>
@@ -360,6 +406,98 @@ interface WalletStats {
   balance: number;
   tokenCount: number;
   txCount: number;
+}
+
+// Profile page component
+function ProfilePage({ username }: { username: string }) {
+  const [data, setData] = useState<{alias:string;address:string}|null>(null);
+  const [stats, setStats] = useState<WalletStats|null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const result = await resolveAlias(username);
+      if (result) {
+        setData(result);
+        // Fetch stats
+        try {
+          const pubkey = new PublicKey(result.address);
+          const balance = await connection.getBalance(pubkey);
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(pubkey, {
+            programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+          });
+          const sigs = await connection.getSignaturesForAddress(pubkey, { limit: 100 });
+          setStats({
+            balance: balance / LAMPORTS_PER_SOL,
+            tokenCount: tokenAccounts.value.length,
+            txCount: sigs.length
+          });
+        } catch (e) {
+          setStats({ balance: 0, tokenCount: 0, txCount: 0 });
+        }
+      } else {
+        setNotFound(true);
+      }
+      setLoading(false);
+    })();
+  }, [username]);
+
+  if (loading) return (
+    <div style={{textAlign:'center',padding:60}}>
+      <div style={{fontSize:24,color:'#666'}}>Loading...</div>
+    </div>
+  );
+
+  if (notFound) return (
+    <div className="result-box">
+      <div className="result-alias">@{username}</div>
+      <div className="result-label">Not registered</div>
+      <div className="tag">Available</div>
+      <a href="/" className="btn-ghost" style={{display:'inline-block',marginTop:20}}>Register this name</a>
+    </div>
+  );
+
+  return (
+    <div style={{textAlign:'center'}}>
+      <div style={{fontSize:64,fontWeight:700,marginBottom:8}}>@{data?.alias}</div>
+      <div style={{fontFamily:'monospace',fontSize:13,color:'#666',background:'#111',padding:16,borderRadius:12,marginBottom:24,wordBreak:'break-all'}}>
+        {data?.address}
+      </div>
+      
+      {/* Stats */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:24}}>
+        <div style={{background:'#111',padding:20,borderRadius:12}}>
+          <div style={{fontSize:28,fontWeight:700}}>{stats ? stats.balance.toFixed(4) : '...'}</div>
+          <div style={{fontSize:12,color:'#666',marginTop:4}}>SOL</div>
+        </div>
+        <div style={{background:'#111',padding:20,borderRadius:12}}>
+          <div style={{fontSize:28,fontWeight:700}}>{stats ? stats.tokenCount : '...'}</div>
+          <div style={{fontSize:12,color:'#666',marginTop:4}}>TOKENS</div>
+        </div>
+        <div style={{background:'#111',padding:20,borderRadius:12}}>
+          <div style={{fontSize:28,fontWeight:700}}>{stats ? (stats.txCount >= 100 ? '100+' : stats.txCount) : '...'}</div>
+          <div style={{fontSize:12,color:'#666',marginTop:4}}>TXS</div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+        <button className="btn-main" style={{flex:'1',maxWidth:200}} onClick={() => {navigator.clipboard.writeText(data?.address || '');setCopied(true);setTimeout(()=>setCopied(false),2000);}}>
+          {copied ? '✓ Copied!' : 'Copy address'}
+        </button>
+        <a href={`https://solscan.io/account/${data?.address}`} target="_blank" rel="noreferrer" className="btn-ghost" style={{flex:'1',maxWidth:200,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          View on Solscan
+        </a>
+      </div>
+
+      <div style={{marginTop:32,padding:20,background:'#111',borderRadius:12}}>
+        <div style={{fontSize:12,color:'#666',marginBottom:12}}>Share this profile</div>
+        <div style={{fontFamily:'monospace',fontSize:14,color:'#888'}}>soltag.xyz/@{data?.alias}</div>
+      </div>
+    </div>
+  );
 }
 
 // Supabase helper functions
