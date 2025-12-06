@@ -339,6 +339,16 @@ export default function App() {
           </div>
         </main>
         <footer className="footer">
+          <div style={{marginBottom:12}}>
+            <span style={{color:'#666',fontSize:11,textTransform:'uppercase',letterSpacing:1}}>CA: </span>
+            <span 
+              style={{fontFamily:'monospace',fontSize:12,color:'#888',cursor:'pointer'}} 
+              onClick={() => {navigator.clipboard.writeText('PASTE_YOUR_CA_HERE');}}
+              title="Click to copy"
+            >
+              PASTE_YOUR_CA_HERE
+            </span>
+          </div>
           Free to register · <a href="https://x.com/SolTagxyz" target="_blank" rel="noreferrer" style={{color:'#666',textDecoration:'none'}}>@SolTagxyz</a>
         </footer>
       </div>
