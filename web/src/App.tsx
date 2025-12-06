@@ -960,7 +960,7 @@ function VanityTab() {
     <>
       <div style={{textAlign:'center',marginBottom:24}}>
         <div style={{fontSize:14,color:'#666'}}>Generate a custom Solana address</div>
-        <div style={{fontSize:12,color:'#444',marginTop:4}}>4 characters = ~1 min average</div>
+        <div style={{fontSize:12,color:'#444',marginTop:4}}>Longer patterns take longer to find</div>
       </div>
 
       <div className="form-section">
