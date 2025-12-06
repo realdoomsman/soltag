@@ -960,7 +960,7 @@ function VanityTab() {
     <>
       <div style={{textAlign:'center',marginBottom:24}}>
         <div style={{fontSize:14,color:'#666'}}>Generate a custom Solana address</div>
-        <div style={{fontSize:12,color:'#444',marginTop:4}}>Longer patterns take longer to find</div>
+        <div style={{fontSize:12,color:'#444',marginTop:4}}>Max 3 characters • Usually under 1 minute</div>
       </div>
 
       <div className="form-section">
@@ -970,9 +970,9 @@ function VanityTab() {
             className="input-main" 
             style={{paddingLeft:24,fontFamily:'monospace'}} 
             value={prefix} 
-            onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,4))} 
+            onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,3))} 
             placeholder="e.g. Sol" 
-            maxLength={4}
+            maxLength={3}
             disabled={running}
           />
         </div>
@@ -985,9 +985,9 @@ function VanityTab() {
             className="input-main" 
             style={{paddingLeft:24,fontFamily:'monospace'}} 
             value={suffix} 
-            onChange={e => setSuffix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,4))} 
+            onChange={e => setSuffix(e.target.value.replace(/[^a-zA-Z0-9]/g,'').slice(0,3))} 
             placeholder="e.g. xyz" 
-            maxLength={4}
+            maxLength={3}
             disabled={running}
           />
         </div>
