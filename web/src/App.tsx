@@ -335,7 +335,7 @@ export default function App() {
         <style>{CSS}</style>
         <div className="app">
           <nav className="nav">
-            <a href="/" className="logo" style={{ textDecoration: 'none' }}>soltag</a>
+            <a href="/" className="logo" style={{ textDecoration: 'none' }}>tagsol</a>
             <div className="nav-links">
               <a href="/" className="nav-link">Home</a>
             </div>
@@ -358,7 +358,7 @@ export default function App() {
       <style>{CSS}</style>
       <div className="app">
         <nav className="nav">
-          <div className="logo">soltag</div>
+          <div className="logo">tagsol</div>
           <div className="nav-links">
             <button className={`nav-link ${tab === 'lookup' ? 'active' : ''}`} onClick={() => setTab('lookup')}>Lookup</button>
             <button className={`nav-link ${tab === 'send' ? 'active' : ''}`} onClick={() => setTab('send')}>Send</button>
@@ -368,7 +368,7 @@ export default function App() {
         </nav>
         <main className="main">
           <div className="hero">
-            <h1 className="title">soltag</h1>
+            <h1 className="title">tagsol</h1>
             <p className="subtitle">Send to @names, not addresses</p>
           </div>
           <div className="content">
@@ -478,7 +478,7 @@ function ProfilePage({ username }: { username: string }) {
 
       <div style={{ marginTop: 32, padding: 20, background: '#111', borderRadius: 12 }}>
         <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>Share this profile</div>
-        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#888' }}>soltag.xyz/@{data?.alias}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 14, color: '#888' }}>tagsol.xyz/@{data?.alias}</div>
       </div>
     </div>
   );

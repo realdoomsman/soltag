@@ -1,12 +1,12 @@
-# soltag
+# tagsol
 
 send sol to @names, not addresses.
 
 ## what is this
 
-soltag lets you register a human-readable @name for your solana wallet. instead of sharing `7xK2mF9qR4nP8vL...`, you share `@yourname`.
+tagsol lets you register a human-readable @name for your solana wallet. instead of sharing `7xK2mF9qR4nP8vL...`, you share `@yourname`.
 
-**live at [soltag.xyz](https://soltag.xyz)**
+**live at [tagsol.xyz](https://tagsol.xyz)**
 
 ## features
 
@@ -35,8 +35,8 @@ npm run dev
 
 ## links
 
-- website: [soltag.xyz](https://soltag.xyz)
-- twitter: [@SolTagxyz](https://x.com/SolTagxyz)
+- website: [tagsol.xyz](https://tagsol.xyz)
+- twitter: [@TagSolxyz](https://x.com/TagSolxyz)
 - token: $TAG
 
 ## license
