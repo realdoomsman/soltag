@@ -442,6 +442,44 @@ body {
 }
 `;
 
+const CA = 'TPBZ4LBaDZ4CRKCi6oFurrJeLqA8eRiG4DzNoKepump';
+
+function CABanner() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(CA).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // fallback
+      const el = document.createElement('textarea');
+      el.value = CA;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div className="ca-banner" onClick={copy} style={{ cursor: 'pointer' }}>
+      <div className="ca-inner">
+        <div className="ca-left">
+          <div className="ca-icon">◆</div>
+          <div>
+            <div className="ca-label">$TAG Contract Address</div>
+            <div className="ca-value">{CA}</div>
+          </div>
+        </div>
+        <button className="ca-badge" style={{ cursor: 'pointer', border: copied ? '1px solid #22c55e' : undefined, color: copied ? '#22c55e' : undefined }}>
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('lookup');
   const [profileUser, setProfileUser] = useState<string | null>(null);
@@ -467,18 +505,7 @@ export default function App() {
             <div className="content">
               <ProfilePage username={profileUser} />
             </div>
-            <div className="ca-banner">
-              <div className="ca-inner">
-                <div className="ca-left">
-                  <div className="ca-icon">◆</div>
-                  <div>
-                    <div className="ca-label">$TAG Contract Address</div>
-                    <div className="ca-value">TPBZ4LBaDZ4CRKCi6oFurrJeLqA8eRiG4DzNoKepump</div>
-                  </div>
-                </div>
-                <div className="ca-badge" style={{ cursor: 'pointer' }} onClick={() => { navigator.clipboard.writeText('TPBZ4LBaDZ4CRKCi6oFurrJeLqA8eRiG4DzNoKepump'); }}>Copy</div>
-              </div>
-            </div>
+            <CABanner />
           </main>
           <footer className="footer">
             <div className="footer-links">
@@ -522,18 +549,7 @@ export default function App() {
             {tab === 'register' && <RegisterTab />}
             {tab === 'vanity' && <VanityTab />}
           </div>
-          <div className="ca-banner">
-            <div className="ca-inner">
-              <div className="ca-left">
-                <div className="ca-icon">◆</div>
-                <div>
-                  <div className="ca-label">$TAG Contract Address</div>
-                  <div className="ca-value">TPBZ4LBaDZ4CRKCi6oFurrJeLqA8eRiG4DzNoKepump</div>
-                </div>
-              </div>
-              <div className="ca-badge" style={{ cursor: 'pointer' }} onClick={() => { navigator.clipboard.writeText('TPBZ4LBaDZ4CRKCi6oFurrJeLqA8eRiG4DzNoKepump'); }}>Copy</div>
-            </div>
-          </div>
+          <CABanner />
         </main>
         <footer className="footer">
             <div className="footer-links">
