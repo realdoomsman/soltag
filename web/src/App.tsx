@@ -687,11 +687,15 @@ async function checkAlias(alias: string) {
   return !data; // available if no data
 }
 
-async function registerAlias(alias: string, address: string) {
+async function registerAlias(alias: string, address: string): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from('aliases')
     .insert({ alias: alias.toLowerCase(), address });
-  return !error;
+  if (error) {
+    console.error('Registration error:', error);
+    return { success: false, error: error.message || error.code || 'Unknown error' };
+  }
+  return { success: true };
 }
 
 function LookupTab() {
@@ -1021,9 +1025,9 @@ function RegisterTab() {
       <button className="btn-main" disabled={!aliasOk || !walletOk || submitting}
         onClick={async () => {
           setSubmitting(true);
-          const success = await registerAlias(alias, wallet);
-          if (success) setDone(true);
-          else alert('Registration failed - alias may already be taken');
+          const result = await registerAlias(alias, wallet);
+          if (result.success) setDone(true);
+          else alert('Registration failed: ' + (result.error || 'unknown error'));
           setSubmitting(false);
         }}>
         {submitting ? 'Registering...' : aliasOk && walletOk ? `Claim @${alias}` : 'Complete form above'}
